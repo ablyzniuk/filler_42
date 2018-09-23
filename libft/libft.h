@@ -6,7 +6,7 @@
 /*   By: ablizniu <ablizniu@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/11/01 16:10:11 by ablizniu          #+#    #+#             */
-/*   Updated: 2018/02/19 19:11:39 by ablizniu         ###   ########.fr       */
+/*   Updated: 2018/09/23 16:34:00 by ablizniu         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,13 @@
 # include <string.h>
 # include <stddef.h>
 # define BUFF_SIZE 1000
+
+typedef	struct		s_gnl
+{
+	char			*arr;
+	int				fd;
+	struct s_gnl	*next;
+}					t_gnl;	
 
 typedef struct		s_list
 {

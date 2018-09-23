@@ -5,124 +5,99 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: ablizniu <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2018/01/28 21:09:38 by ablizniu          #+#    #+#             */
-/*   Updated: 2018/01/28 21:09:41 by ablizniu         ###   ########.fr       */
+/*   Created: 2018/09/23 11:25:40 by ablizniu          #+#    #+#             */
+/*   Updated: 2018/09/23 11:28:19 by ablizniu         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "libft.h"
 
-static t_arr	*funk_list(const int fd, t_arr *list)
+static	ssize_t	find_n(const char *mas)
 {
-	t_arr	*new_elem;
-	t_arr	*time;
-	int		temp_fd;
+	ssize_t		i;
 
-	if (!list)
-	{
-		list = (t_arr*)ft_memalloc(sizeof(t_arr));
-		list->fd = fd;
-		list->arr = NULL;
-		list->next = list;
-		return (list);
-	}
-	temp_fd = list->fd;
-	while (list->fd != fd && list->next->fd != temp_fd)
-		list = list->next;
-	if (list->fd == fd)
-		return (list);
-	new_elem = (t_arr*)ft_memalloc(sizeof(t_arr));
-	new_elem->fd = fd;
-	new_elem->arr = NULL;
-	time = list->next;
-	new_elem->next = time;
-	list->next = new_elem;
-	return (new_elem);
+	i = 0;
+	while (mas[i] && mas[i] != '\n')
+		i++;
+	return (i);
 }
 
-static int		ft_cheackbuff(char **line, char *buff, char **arr)
+static	int		write_arr(char **arr, ssize_t *ret, const int fd, char *fr_arr)
 {
-	if (ft_strchr(buff, '\n'))
+	char		*buf;
+
+	if (!(buf = (char *)malloc(sizeof(char) * (BUFF_SIZE + 1))))
+		return (-1);
+	while ((*arr)[find_n(*arr)] != '\n' && (*ret = read(fd, buf, BUFF_SIZE)))
 	{
-		*line = ft_strsub(buff, 0, ft_strchr(buff, '\n') - buff);
-		if (*(ft_strchr(buff, '\n') + 1))
-			*arr = ft_strdup(ft_strchr(buff, '\n') + 1);
-		return (1);
+		if (*ret < 0)
+			return (-1);
+		buf[(*ret)] = '\0';
+		fr_arr = *arr;
+		if (!((*arr) = ft_strjoin(*arr, buf)))
+			return (-1);
+		free(fr_arr);
 	}
-	else if ((*line = ft_strdup(buff)))
-		ft_strdel(arr);
+	free(buf);
 	return (0);
 }
 
-static int		ft_line_join(char **line, char *buff, char **arr)
+static	int		get_first_line(char **arr, char **line, ssize_t ret)
 {
-	char	*time_str;
-	char	*one_more_line;
+	ssize_t			i;
+	char			*free_old_arr;
 
-	if (ft_strchr(buff, '\n'))
+	free_old_arr = NULL;
+	i = find_n(*arr);
+	if ((*arr)[i] == '\n' || (i && !ret))
 	{
-		time_str = *line;
-		one_more_line = ft_strsub(buff, 0, ft_strchr(buff, '\n') - buff);
-		*line = ft_strjoin(*line, one_more_line);
-		ft_strdel(&time_str);
-		ft_strdel(&one_more_line);
-		*arr = ft_strdup(ft_strchr(buff, '\n') + 1);
-		return (1);
+		if (!((*line) = ft_strsub(*arr, 0, i)))
+			return (-1);
+		free_old_arr = *arr;
+		*arr = ft_strsub(*arr, (i + 1), (ft_strlen(*arr) - i));
+		free(free_old_arr);
 	}
 	else
-	{
-		time_str = *line;
-		*line = ft_strjoin(*line, buff);
-		ft_strdel(&time_str);
-	}
-	return (0);
+		return (0);
+	return (1);
 }
 
-static void		ft_checktail(char **line, char **arr)
+static	int		make_new_fd(const int fd, t_gnl **poi, t_gnl *l)
 {
-	char	*buff;
-
-	if (*arr && !**arr)
-		ft_strdel(arr);
-	if (*arr && **arr)
+	if (!((*poi) = (t_gnl *)malloc(sizeof(t_gnl))))
+		return (-1);
+	if (!((*poi)->arr = (char *)ft_memalloc(sizeof(char) * (BUFF_SIZE + 1))))
 	{
-		if (!ft_strchr(*arr, '\n') && (*line = ft_strdup(*arr)))
-			ft_strdel(arr);
-		else
-		{
-			*line = ft_strsub(*arr, 0, ft_strchr(*arr, '\n') - *arr);
-			buff = *arr;
-			*arr = ft_strdup(ft_strchr(*arr, '\n') + 1);
-			ft_strdel(&buff);
-		}
+		free(*poi);
+		return (-1);
 	}
+	(*poi)->fd = fd;
+	(*poi)->next = NULL;
+	while (l && l->next && fd != l->fd)
+		l = l->next;
+	if (l && !(l->next))
+		l->next = *poi;
+	return (0);
 }
 
 int				get_next_line(const int fd, char **line)
 {
-	int				file;
-	static t_arr	*list;
-	char			*buff;
+	static	t_gnl	*l;
+	t_gnl			*poi;
+	char			*free_old_arr;
+	ssize_t			ret;
 
-	if (fd < 0 || BUFF_SIZE <= 0 || !line)
+	if (fd < 0 || !line || BUFF_SIZE <= 0)
 		return (-1);
-	list = funk_list(fd, list);
-	*line = NULL;
-	ft_checktail(line, &(list->arr));
-	buff = ft_strnew(BUFF_SIZE);
-	while (!(list->arr) && (file = (int)read(list->fd, buff, BUFF_SIZE)) > 0)
-	{
-		if (!*line)
-		{
-			if (ft_cheackbuff(line, buff, &(list->arr)) == 1)
-				break ;
-		}
-		else if (*line && ft_line_join(line, buff, &(list->arr)) == 1)
-			break ;
-		ft_bzero((void*)buff, BUFF_SIZE);
-	}
-	ft_strdel(&buff);
-	if (file < 0)
+	free_old_arr = NULL;
+	if (!l && (make_new_fd(fd, &l, NULL) == -1))
 		return (-1);
-	return (*line ? 1 : 0);
+	poi = l;
+	while (poi && fd != poi->fd)
+		poi = poi->next;
+	if (!poi && (make_new_fd(fd, &poi, l) == -1))
+		return (-1);
+	if (write_arr(&(poi->arr), &ret, fd, free_old_arr) == -1)
+		return (-1);
+	return (get_first_line(&(poi->arr), line, ret));
 }
