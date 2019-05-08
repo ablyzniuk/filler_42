@@ -1,5 +1,5 @@
 # filler_42
-Its a project for schrool 42, in algo-branch.
+Its a project for school 42, in algo-branch.
 Its a simple bot for a game "filler".
 You can run it by using simple scripts for demo. (ex:sh big_map_01.sh) 
 Its a version for demonstrations. Some additional functions are aviable if will run only a virtual machine without visual part.
